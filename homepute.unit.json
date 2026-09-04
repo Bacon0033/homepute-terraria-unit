@@ -18,7 +18,7 @@
   "runtime": {
     "kind": "oci",
     "image": "ghcr.io/bacon0033/homepute-terraria-unit",
-    "digest": "sha256:76d414eec6a93a939ff5b7b69655f158b06bd4172a5d9d360110a695524ce69a",
+    "digest": "sha256:f8a305ac3c03b3eda5bb55df3b5175650d038ce8d511df1786896a91fb122c27",
     "platforms": [
       "linux/amd64"
     ],
