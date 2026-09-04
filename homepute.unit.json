@@ -3,7 +3,7 @@
   "unit": {
     "id": "terraria-server",
     "name": "Terraria Server",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "publisher": "homepute",
     "description": "A persistent Terraria 1.4.5.7 server with a generic console and state data channel.",
     "longDescription": "Run the official Terraria dedicated server on your own Homepute node. Worlds persist across restarts and updates. A manifest-declared HTTP/JSON output exposes bounded server state and accepts console commands, so dashboards and automations can connect without Terraria-specific behavior in Homepute OS.",
@@ -31,9 +31,8 @@
       },
       {
         "name": "HOMEPUTE_CHANNEL_PORT",
-        "source": "config",
-        "configKey": "channelPort",
-        "format": "string"
+        "source": "literal",
+        "value": "8080"
       },
       {
         "name": "TERRARIA_WORLD_NAME",
