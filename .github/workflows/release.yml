@@ -29,6 +29,6 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/homepute-terraria-unit:1.0.0
-            ghcr.io/${{ github.repository_owner }}/homepute-terraria-unit:latest
+            ghcr.io/bacon0033/homepute-terraria-unit:1.0.0
+            ghcr.io/bacon0033/homepute-terraria-unit:latest
           provenance: false
