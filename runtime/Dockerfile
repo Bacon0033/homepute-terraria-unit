@@ -1,14 +1,14 @@
-FROM ghcr.io/beardedio/terraria@sha256:3f4f2969811de6e464ef980fdc19aec22afe84bdc608861d93e6522b0ae4762c
+FROM python:3.12-slim-bookworm AS game
+ARG TARGETARCH
+COPY terraria-server.zip install-game.py /tmp/
+RUN python /tmp/install-game.py
 
-LABEL org.opencontainers.image.source="https://github.com/Bacon0033/homepute-terraria-unit" \
-      org.opencontainers.image.description="Terraria dedicated server runtime for Homepute" \
-      org.opencontainers.image.licenses="MIT"
-
-USER root
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends python3 \
-    && rm -rf /var/lib/apt/lists/*
-
+FROM debian:bookworm-slim
+LABEL org.opencontainers.image.source="https://github.com/Bacon0033/homepute-terraria-unit"
+RUN apt-get update && apt-get install -y --no-install-recommends python3 mono-runtime libmono-system-windows-forms4.0-cil libmono-system-runtime-serialization4.0-cil libmono-sqlite4.0-cil ca-certificates && rm -rf /var/lib/apt/lists/* \
+    && useradd --uid 10001 --create-home terraria && install -d -o terraria -g terraria /config
+COPY --from=game /vanilla /vanilla
 COPY terraria_bridge.py /opt/homepute/terraria_bridge.py
+WORKDIR /vanilla
 EXPOSE 7777/tcp 8080/tcp
-ENTRYPOINT ["python3", "/opt/homepute/terraria_bridge.py"]
+ENTRYPOINT ["python3", "-u", "/opt/homepute/terraria_bridge.py"]

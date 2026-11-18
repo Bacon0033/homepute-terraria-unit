@@ -1,0 +1,366 @@
+{
+  "schemaVersion": 1,
+  "unit": {
+    "id": "terraria-server",
+    "name": "Terraria Server",
+    "version": "1.1.0",
+    "publisher": "homepute",
+    "description": "Host a persistent Terraria 1.4.5.8 world with local and internet join addresses.",
+    "longDescription": "Run the official Terraria dedicated server on your own Homepute node. Worlds persist across restarts and updates. A manifest-declared HTTP/JSON output exposes bounded server state and accepts console commands, so dashboards and automations can connect without Terraria-specific behavior in Homepute OS.",
+    "category": "gaming",
+    "license": "MIT",
+    "homepage": "https://github.com/Bacon0033/homepute-terraria-unit",
+    "repository": "https://github.com/Bacon0033/homepute-terraria-unit"
+  },
+  "compatibility": {
+    "homeputeApi": "^1.1.0"
+  },
+  "runtime": {
+    "kind": "oci",
+    "image": "ghcr.io/bacon0033/homepute-terraria-unit",
+    "platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "environment": [
+      {
+        "name": "TERRARIA_PORT",
+        "source": "literal",
+        "value": "7777"
+      },
+      {
+        "name": "TERRARIA_HOST_PORT",
+        "source": "config",
+        "configKey": "gamePort",
+        "format": "string"
+      },
+      {
+        "name": "HOMEPUTE_CHANNEL_PORT",
+        "source": "literal",
+        "value": "8080"
+      },
+      {
+        "name": "TERRARIA_WORLD_NAME",
+        "source": "config",
+        "configKey": "worldName",
+        "format": "string"
+      },
+      {
+        "name": "TERRARIA_WORLD_SIZE",
+        "source": "config",
+        "configKey": "worldSize",
+        "format": "string"
+      },
+      {
+        "name": "TERRARIA_MAX_PLAYERS",
+        "source": "config",
+        "configKey": "maxPlayers",
+        "format": "string"
+      },
+      {
+        "name": "TERRARIA_PASSWORD",
+        "source": "config",
+        "configKey": "serverPassword",
+        "format": "string"
+      },
+      {
+        "name": "TERRARIA_MOTD",
+        "source": "config",
+        "configKey": "motd",
+        "format": "string"
+      },
+      {
+        "name": "TERRARIA_CONSOLE_KEY",
+        "source": "config",
+        "configKey": "consoleKey",
+        "format": "string"
+      }
+    ],
+    "stdio": {
+      "stdin": true,
+      "tty": true
+    }
+  },
+  "configuration": {
+    "fields": [
+      {
+        "key": "gamePort",
+        "label": "Game port",
+        "description": "TCP port Terraria players use on your local network.",
+        "type": "number",
+        "required": true,
+        "default": 7777,
+        "min": 1024,
+        "max": 65535
+      },
+      {
+        "key": "channelPort",
+        "label": "Data channel port",
+        "description": "Private LAN port used by connected Homepute units for state and commands.",
+        "type": "number",
+        "required": true,
+        "default": 8787,
+        "min": 1024,
+        "max": 65535
+      },
+      {
+        "key": "worldName",
+        "label": "World name",
+        "description": "Name used when the unit creates its persistent world.",
+        "type": "string",
+        "required": true,
+        "default": "Homepute World"
+      },
+      {
+        "key": "worldSize",
+        "label": "World size",
+        "description": "Size used only when creating a new world.",
+        "type": "select",
+        "required": true,
+        "default": "2",
+        "options": [
+          {
+            "label": "Small",
+            "value": "1"
+          },
+          {
+            "label": "Medium",
+            "value": "2"
+          },
+          {
+            "label": "Large",
+            "value": "3"
+          }
+        ]
+      },
+      {
+        "key": "maxPlayers",
+        "label": "Maximum players",
+        "description": "Maximum simultaneous Terraria players.",
+        "type": "number",
+        "required": true,
+        "default": 8,
+        "min": 1,
+        "max": 255
+      },
+      {
+        "key": "serverPassword",
+        "label": "Server password",
+        "description": "Optional password for players. Leave blank for an open server.",
+        "type": "password",
+        "required": false,
+        "default": ""
+      },
+      {
+        "key": "motd",
+        "label": "Message of the day",
+        "description": "Message displayed by the Terraria server.",
+        "type": "string",
+        "required": true,
+        "default": "Hosted on Homepute"
+      },
+      {
+        "key": "publicAccess",
+        "label": "Internet access",
+        "description": "Allow Homepute to request a TCP mapping for the game port and check the public join address.",
+        "type": "boolean",
+        "required": true,
+        "default": false
+      },
+      {
+        "key": "consoleKey",
+        "label": "Companion console key",
+        "description": "Optional. Set at least 16 characters to allow commands from the wired dashboard.",
+        "type": "password",
+        "required": false,
+        "default": ""
+      }
+    ]
+  },
+  "resources": {
+    "minimum": {
+      "cpuCores": 2,
+      "memoryMb": 1024,
+      "storageMb": 1024
+    },
+    "defaults": {
+      "cpuCores": 2,
+      "memoryMb": 2048,
+      "storageMb": 4096
+    },
+    "limits": {
+      "cpuCores": 8,
+      "memoryMb": 16384,
+      "storageMb": 262144
+    }
+  },
+  "network": {
+    "ports": [
+      {
+        "name": "terraria",
+        "containerPort": 7777,
+        "protocol": "tcp",
+        "exposure": "lan",
+        "hostPortConfigKey": "gamePort",
+        "publicIngress": {
+          "mode": "upnp",
+          "enabledConfigKey": "publicAccess",
+          "verify": "terraria"
+        }
+      },
+      {
+        "name": "channel",
+        "containerPort": 8080,
+        "protocol": "http",
+        "exposure": "lan",
+        "hostPortConfigKey": "channelPort"
+      }
+    ]
+  },
+  "dataPorts": [
+    {
+      "id": "server-channel",
+      "label": "Server channel",
+      "direction": "output",
+      "color": "#9c82ee",
+      "dataFormat": "application/vnd.homepute.console.v1+json",
+      "description": "Bidirectional HTTP/JSON channel for server state, bounded output, and console commands.",
+      "transport": {
+        "kind": "http-json-v1",
+        "port": "channel",
+        "path": "/v1/channel",
+        "methods": [
+          "GET",
+          "POST"
+        ],
+        "requestResponse": true
+      }
+    }
+  ],
+  "marketplace": {
+    "type": "unit"
+  },
+  "storage": {
+    "volumes": [
+      {
+        "name": "world",
+        "mountPath": "/config",
+        "persistent": true,
+        "sizeHintMb": 4096
+      }
+    ]
+  },
+  "health": {
+    "readiness": {
+      "type": "http",
+      "port": "channel",
+      "path": "/health",
+      "intervalSeconds": 5,
+      "timeoutSeconds": 3,
+      "retries": 120
+    },
+    "liveness": {
+      "type": "http",
+      "port": "channel",
+      "path": "/health",
+      "intervalSeconds": 30,
+      "timeoutSeconds": 5,
+      "retries": 3
+    }
+  },
+  "lifecycle": {
+    "stopGraceSeconds": 30,
+    "restartPolicy": "unless-stopped",
+    "restartMaximumRetries": 5
+  },
+  "capabilities": [
+    "network.ingress",
+    "network.egress",
+    "storage.persistent"
+  ],
+  "update": {
+    "strategy": "replace-preserve-volumes"
+  },
+  "presentation": {
+    "icon": "TS",
+    "screenshots": [],
+    "documentationUrl": "https://github.com/Bacon0033/homepute-terraria-unit#readme",
+    "canvas": {
+      "fields": [
+        {
+          "key": "terraria.lanAddress",
+          "label": "Terraria local network",
+          "source": {
+            "type": "endpoint",
+            "port": "terraria",
+            "address": "lan"
+          },
+          "format": "text",
+          "hint": "Use this address from a Terraria client on the same network."
+        },
+        {
+          "key": "terraria.publicAddress",
+          "label": "Terraria internet address",
+          "source": {
+            "type": "endpoint",
+            "port": "terraria",
+            "address": "public"
+          },
+          "format": "text",
+          "hint": "Shown after the public game endpoint has been verified."
+        },
+        {
+          "key": "terraria.forwarding",
+          "label": "Port forwarding",
+          "format": "text",
+          "source": {
+            "type": "runtime",
+            "key": "network.terraria.publicStatus"
+          },
+          "actionId": "homepute.network.retry"
+        },
+        {
+          "key": "terraria.world",
+          "label": "World",
+          "source": {
+            "type": "runtime",
+            "key": "terraria.world"
+          },
+          "format": "text"
+        },
+        {
+          "key": "terraria.uptime",
+          "label": "Uptime",
+          "source": {
+            "type": "metric",
+            "key": "terraria.uptimeSeconds"
+          },
+          "format": "duration"
+        },
+        {
+          "key": "terraria.commands",
+          "label": "Commands accepted",
+          "source": {
+            "type": "metric",
+            "key": "terraria.commands"
+          },
+          "format": "number"
+        }
+      ]
+    }
+  },
+  "api": {
+    "events": "stdout-jsonl-v1",
+    "actions": [
+      {
+        "id": "homepute.console",
+        "label": "Terraria console",
+        "description": "Send a command to this Terraria server.",
+        "method": "POST",
+        "port": "channel",
+        "path": "/actions/console",
+        "timeoutSeconds": 8
+      }
+    ]
+  }
+}
