@@ -3,9 +3,9 @@
   "unit": {
     "id": "terraria-server",
     "name": "Terraria Server",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "publisher": "homepute",
-    "description": "Host a persistent Terraria 1.4.5.8 world with local and internet join addresses.",
+    "description": "Host a persistent Terraria world with a public game port and a wired server panel.",
     "longDescription": "Run the official Terraria dedicated server on your own Homepute node. Worlds persist across restarts and updates. A manifest-declared HTTP/JSON output exposes bounded server state and accepts console commands, so dashboards and automations can connect without Terraria-specific behavior in Homepute OS.",
     "category": "gaming",
     "license": "MIT",
@@ -74,6 +74,12 @@
         "source": "config",
         "configKey": "consoleKey",
         "format": "string"
+      },
+      {
+        "name": "TERRARIA_VERSION",
+        "source": "config",
+        "configKey": "gameVersion",
+        "format": "string"
       }
     ],
     "stdio": {
@@ -83,6 +89,14 @@
   },
   "configuration": {
     "fields": [
+      {
+        "key": "gameVersion",
+        "label": "Terraria version",
+        "description": "Use LATEST for the current PC release, or enter an exact dedicated-server version such as 1.4.4.9.",
+        "type": "string",
+        "required": true,
+        "default": "LATEST"
+      },
       {
         "key": "gamePort",
         "label": "Game port",
@@ -165,7 +179,7 @@
         "description": "Allow Homepute to request a TCP mapping for the game port and check the public join address.",
         "type": "boolean",
         "required": true,
-        "default": false
+        "default": true
       },
       {
         "key": "consoleKey",
@@ -318,6 +332,15 @@
             "key": "network.terraria.publicStatus"
           },
           "actionId": "homepute.network.retry"
+        },
+        {
+          "key": "terraria.version",
+          "label": "Game version",
+          "source": {
+            "type": "runtime",
+            "key": "terraria.version"
+          },
+          "format": "text"
         },
         {
           "key": "terraria.world",

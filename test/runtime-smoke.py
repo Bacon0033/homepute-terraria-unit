@@ -42,7 +42,7 @@ try:
             reservation.bind(("127.0.0.1", 0))
             advertised = reservation.getsockname()[1]
         engine("run", "-d", "--name", name, "-e", "TERRARIA_HOST_PORT=" + str(advertised), "-p", f"127.0.0.1:{advertised}:7777/tcp", "-p", "127.0.0.1::8080/tcp",
-               "-e", "TERRARIA_WORLD_SIZE=1", "-e", "TERRARIA_WORLD_NAME=SDK fixture", "-e", "TERRARIA_CONSOLE_KEY",
+               "-e", "TERRARIA_VERSION=1.4.5.8", "-e", "TERRARIA_WORLD_SIZE=1", "-e", "TERRARIA_WORLD_NAME=SDK fixture", "-e", "TERRARIA_CONSOLE_KEY",
                "-e", "HOMEPUTE_API_TOKEN", "-e", "HOMEPUTE_DEPLOYMENT_ID=" + name, "-v", volume + ":/config", image)
         channel = int(engine("port",name,"8080/tcp").split(":")[-1])
         game = int(engine("port",name,"7777/tcp").split(":")[-1])
@@ -57,7 +57,16 @@ try:
             time.sleep(1)
         else:
             raise RuntimeError("Terraria did not finish starting")
-        assert call(channel, "/v1/channel")[1]["gamePort"] == game == advertised
+        state = call(channel, "/v1/channel")[1]
+        assert state["gamePort"] == game == advertised
+        assert state["gameVersion"] == "1.4.5.8"
+        assert not state["consoleAuthorized"]
+        for _ in range(5):
+            if call(channel, "/v1/channel")[1]["samples"]:
+                break
+            time.sleep(1)
+        sample = call(channel, "/v1/channel")[1]["samples"][-1]
+        assert sample["memoryMiB"] > 0 and sample["cpuPercent"] >= 0
         try:
             if boot == 1 and len(sys.argv) > 2:
                 subprocess.run(["node", str(Path(__file__).with_name("gateway-fixture.cjs")), sys.argv[2], str(game)], check=True, timeout=30)

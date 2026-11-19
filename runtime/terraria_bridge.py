@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
+import codecs
 import collections
 import hmac
 import json
 import os
 import pty
+import re
+from pathlib import Path
+from game_release import game_directory
 import select
 import signal
 import subprocess
@@ -22,6 +26,7 @@ MOTD = os.environ.get("TERRARIA_MOTD", "Hosted on Homepute")[:256]
 WORLD_PATH = "/config/homepute.wld"
 LOGS = collections.deque(maxlen=500)
 STATE = {"ready": False, "startedAt": time.time(), "commands": 0, "lastLineAt": None}
+SAMPLES = collections.deque(maxlen=120)
 MASTER_FD = None
 PROCESS = None
 
@@ -31,11 +36,15 @@ def event(kind, values):
 
 
 def record(line):
-    line = line.rstrip("\r\n")[:2048]
+    line = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", "", line).rstrip("\r\n")[:2048]
     if not line:
         return
     entry = {"timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "message": line}
     LOGS.append(entry)
+    banner = re.search(r"Terraria Server v([0-9.]+)", line)
+    if banner:
+        STATE["gameVersion"] = banner[1]
+        event("presentation.update", {"terraria.version": banner[1]})
     STATE["lastLineAt"] = entry["timestamp"]
     if "server started" in line.lower() or "type 'help'" in line.lower():
         STATE["ready"] = True
@@ -62,9 +71,13 @@ def write_config():
 
 
 def read_output():
-    while PROCESS and PROCESS.poll() is None:
+    decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
+    pending = ""
+    while True:
         ready, _, _ = select.select([MASTER_FD], [], [], 1.0)
         if not ready:
+            if PROCESS.poll() is not None:
+                break
             continue
         try:
             data = os.read(MASTER_FD, 4096)
@@ -72,8 +85,11 @@ def read_output():
             break
         if not data:
             break
-        for line in data.decode("utf-8", errors="replace").splitlines():
+        lines = re.split(r"[\r\n]", pending + decoder.decode(data))
+        pending = lines.pop()[:2048]
+        for line in lines:
             record(line)
+    record(pending + decoder.decode(b"", final=True))
 
 
 def send_command(command):
@@ -87,6 +103,26 @@ def send_command(command):
     return command
 
 
+def measure_game():
+    previous = None
+    ticks = os.sysconf("SC_CLK_TCK")
+    while PROCESS.poll() is None:
+        try:
+            # /proc/PID/stat fields 14 and 15 are user and kernel CPU ticks.
+            fields = Path(f"/proc/{PROCESS.pid}/stat").read_text().rsplit(")", 1)[1].split()
+            cpu = (int(fields[11]) + int(fields[12])) / ticks
+            now = time.monotonic()
+            pages = int(Path(f"/proc/{PROCESS.pid}/statm").read_text().split()[1])
+            if previous:
+                usage = round(100 * (cpu - previous[0]) / (now - previous[1]), 1)
+                SAMPLES.append({"time": int(time.time()), "cpuPercent": usage,
+                                "memoryMiB": round(pages * os.sysconf("SC_PAGE_SIZE") / 1048576, 1)})
+            previous = (cpu, now)
+        except (OSError, ValueError, IndexError):
+            pass
+        time.sleep(2)
+
+
 def snapshot(include_logs=False):
     running = PROCESS is not None and PROCESS.poll() is None
     return {
@@ -97,6 +133,9 @@ def snapshot(include_logs=False):
         "ready": running and STATE["ready"],
         "gamePort": ADVERTISED_PORT,
         "world": WORLD_NAME,
+        "gameVersion": STATE.get("gameVersion", RELEASE),
+        "samples": list(SAMPLES),
+        "consoleAuthorized": include_logs,
         "maxPlayers": MAX_PLAYERS,
         "commandsAccepted": STATE["commands"],
         "uptimeSeconds": max(0, int(time.time() - STATE["startedAt"])),
@@ -191,11 +230,13 @@ os.umask(0o077)
 write_config()
 master, slave = pty.openpty()
 MASTER_FD = master
-bundled = "/vanilla/TerrariaServer.bin.x86_64"
-launcher = [bundled] if os.path.isfile(bundled) else ["mono", "/vanilla/TerrariaServer.exe"]
+game_dir, RELEASE = game_directory(os.environ.get("TERRARIA_VERSION", "LATEST"))
+bundled = game_dir / "TerrariaServer.bin.x86_64"
+launcher = [bundled] if bundled.is_file() else ["mono", game_dir / "TerrariaServer.exe"]
 os.environ["MONO_IOMAP"] = "all"
 PROCESS = subprocess.Popen(
     [*launcher, "-config", "/config/serverconfig.txt", "-banlist", "/config/banlist.txt"],
+    cwd=game_dir,
     stdin=slave,
     stdout=slave,
     stderr=slave,
@@ -204,6 +245,7 @@ PROCESS = subprocess.Popen(
 os.close(slave)
 signal.signal(signal.SIGTERM, shutdown)
 signal.signal(signal.SIGINT, shutdown)
+threading.Thread(target=measure_game, daemon=True).start()
 threading.Thread(target=read_output, daemon=True).start()
 threading.Thread(target=ThreadingHTTPServer(("0.0.0.0", ADMIN_PORT), Handler).serve_forever, daemon=True).start()
 event("presentation.update", {"terraria.world": WORLD_NAME, "terraria.gamePort": ADVERTISED_PORT})
