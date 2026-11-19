@@ -234,7 +234,7 @@ game_dir, RELEASE = game_directory(os.environ.get("TERRARIA_VERSION", "LATEST"))
 launcher = ["mono", game_dir / "TerrariaServer.exe"]
 os.environ["MONO_IOMAP"] = "all"
 PROCESS = subprocess.Popen(
-    [*launcher, "-config", "/config/serverconfig.txt", "-banlist", "/config/banlist.txt"],
+    [*launcher, "-ip", "0.0.0.0", "-config", "/config/serverconfig.txt", "-banlist", "/config/banlist.txt"],
     cwd=game_dir,
     stdin=slave,
     stdout=slave,

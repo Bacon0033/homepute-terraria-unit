@@ -71,9 +71,17 @@ try:
             if boot == 1 and len(sys.argv) > 2:
                 subprocess.run(["node", str(Path(__file__).with_name("gateway-fixture.cjs")), sys.argv[2], str(game)], check=True, timeout=30)
             else:
-                check_world(game)
+                for attempt in range(20):
+                    try:
+                        check_world(game)
+                        break
+                    except (ConnectionError, TimeoutError):
+                        if attempt == 19:
+                            raise
+                        time.sleep(1)
         except Exception:
             print(engine("logs", "--tail", "30", name)[-3600:], file=sys.stderr)
+            print(engine("exec", name, "cat", "/proc/net/tcp", "/proc/net/tcp6"), file=sys.stderr)
             raise
         with socket.create_connection(("127.0.0.1", game), 4) as sock:
             sock.sendall(bytes([13,0,1,9])+b"Terraria0")
