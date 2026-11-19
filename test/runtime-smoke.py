@@ -112,6 +112,12 @@ try:
             before=copy
         engine("rm",name)
     print(json.dumps({"boots":2,"architecture":engine("image","inspect","-f","{{.Architecture}}",image),"gameGreeting":True,"worldMetadataReceived":True,"alternateHostPorts":True,"worldRetained":True,"commandsAuthenticated":True,"disposableGateway":len(sys.argv)>2,"routerMappingAttempted":False}))
+except Exception:
+    status = subprocess.run(["docker", "inspect", "--format", "{{json .State}}", name], env=env, text=True, capture_output=True)
+    if status.returncode == 0:
+        print(status.stdout, file=sys.stderr)
+        subprocess.run(["docker", "logs", "--tail", "100", name], env=env, stdout=sys.stderr, stderr=sys.stderr)
+    raise
 finally:
     subprocess.run(["docker","rm","-f",name],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     engine("volume","rm",volume)
