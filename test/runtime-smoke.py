@@ -83,11 +83,21 @@ try:
             print(engine("logs", "--tail", "30", name)[-3600:], file=sys.stderr)
             print(engine("exec", name, "cat", "/proc/net/tcp", "/proc/net/tcp6"), file=sys.stderr)
             raise
-        with socket.create_connection(("127.0.0.1", game), 4) as sock:
-            sock.sendall(bytes([13,0,1,9])+b"Terraria0")
-            with sock.makefile("rb") as wire:
-                length = struct.unpack("<H",wire.read(2))[0]
-                assert length == 25 and wire.read(length-2) == bytes([2,2,19])+b"LegacyMultiplayer.4"+bytes([0])
+        for attempt in range(10):
+            try:
+                with socket.create_connection(("127.0.0.1", game), 4) as sock:
+                    sock.sendall(bytes([13,0,1,9])+b"Terraria0")
+                    with sock.makefile("rb") as wire:
+                        header = wire.read(2)
+                        if len(header) != 2:
+                            raise ConnectionError("Game closed before the protocol reply")
+                        length = struct.unpack("<H", header)[0]
+                        assert length == 25 and wire.read(length-2) == bytes([2,2,19])+b"LegacyMultiplayer.4"+bytes([0])
+                break
+            except (ConnectionError, TimeoutError):
+                if attempt == 9:
+                    raise
+                time.sleep(1)
         assert call(channel,"/v1/channel",{"type":"command","command":"playing"})[0] == 403
         assert call(channel,"/v1/channel",{"type":"command","command":"playing"},{"X-Terraria-Console-Key":admin})[0] == 202
         assert call(channel,"/actions/console",{"command":"playing"})[0] == 403

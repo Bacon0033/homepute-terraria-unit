@@ -10,10 +10,16 @@ def check_world(port):
 
     with socket.create_connection(("127.0.0.1", port), 5) as sock, sock.makefile("rb") as wire:
         def receive():
-            size, kind = struct.unpack("<HB", wire.read(3))
+            header = wire.read(3)
+            if len(header) != 3:
+                raise ConnectionError("Connection closed before the world packet")
+            size, kind = struct.unpack("<HB", header)
             if not 3 <= size <= 65535:
                 raise ValueError("Invalid packet size")
-            return kind, wire.read(size - 3)
+            payload = wire.read(size - 3)
+            if len(payload) != size - 3:
+                raise ConnectionError("Connection closed during a world packet")
+            return kind, payload
         version = b"Terraria326"
         sock.sendall(packet(1, bytes([len(version)]) + version))
         kind, data = receive()
