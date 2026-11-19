@@ -6,6 +6,7 @@ on:
     paths:
       - 'runtime/**'
       - 'release/manifest.template.json'
+      - 'release/plan-version.mjs'
       - '.github/workflows/release.yml'
   workflow_dispatch:
 
@@ -69,7 +70,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Read marketplace version
         id: version
-        run: node -e 'const {unit}=require("./release/manifest.template.json"); if (!/^\d+\.\d+\.\d+$/.test(unit.version)) process.exit(1); console.log("tag="+unit.version)' >> "$GITHUB_OUTPUT"
+        run: node release/plan-version.mjs >> "$GITHUB_OUTPUT"
       - uses: docker/build-push-action@v6
         id: runtime
         with:
@@ -93,7 +94,7 @@ jobs:
       - name: Publish the verified digest to the marketplace
         run: |
           cp release/homepute.unit.json homepute.unit.json
-          git add -- homepute.unit.json
+          git add -- homepute.unit.json release/manifest.template.json
           if git diff --cached --quiet; then exit 0; fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'

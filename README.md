@@ -17,3 +17,5 @@ Power the Terraria Server Panel from a node. Connect the server’s **Server cha
 Download Re-Logic’s 1.4.5.8 PC dedicated-server zip to `runtime/terraria-server.zip` and build the runtime image with Docker. The installer verifies the bundled archive digest. Run `python3 test/runtime-smoke.py IMAGE` to boot twice, join a disposable world, check its saved data and exercise authenticated commands. Pass a built Homepute checkout as a second argument to test the forwarding lifecycle with a software gateway.
 
 The repository-root manifest identifies the published image. The release workflow validates the reviewed Playtest Room SDK evidence, builds both architectures and prepares a marketplace manifest from the immutable multi-platform digest and `release/manifest.template.json`.
+
+After the release checks pass, a runtime change uses the template’s higher version or increments the published patch version. The workflow commits the new immutable image digest and version to the marketplace.
