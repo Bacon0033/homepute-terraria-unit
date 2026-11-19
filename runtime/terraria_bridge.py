@@ -7,7 +7,7 @@ import os
 import pty
 import re
 from pathlib import Path
-from game_release import game_directory
+from game_release import checkpoint_world, game_directory
 import select
 import signal
 import subprocess
@@ -231,6 +231,7 @@ write_config()
 master, slave = pty.openpty()
 MASTER_FD = master
 game_dir, RELEASE = game_directory(os.environ.get("TERRARIA_VERSION", "LATEST"))
+checkpoint_world(Path(WORLD_PATH).parent, RELEASE)
 launcher = ["mono", game_dir / "TerrariaServer.exe"]
 os.environ["MONO_IOMAP"] = "all"
 PROCESS = subprocess.Popen(

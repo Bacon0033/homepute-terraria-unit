@@ -68,6 +68,31 @@ def unpack(archive, version, dest, architecture):
         raise ValueError("Release does not contain a supported Linux dedicated server")
 
 
+def checkpoint_world(directory, target_version):
+    """Keep the existing world before a different game build first opens it."""
+    marker = directory / ".homepute-world-version"
+    previous = marker.read_text().strip() if marker.is_file() else None
+    if previous == target_version:
+        return
+    world = directory / "homepute.wld"
+    if world.is_file():
+        backups = directory / ".homepute-world-backups"
+        backups.mkdir(mode=0o700, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=backups) as staging:
+            snapshot = Path(staging) / "world"
+            snapshot.mkdir()
+            for source in directory.glob("homepute.wld*"):
+                if source.is_file() and not source.is_symlink():
+                    shutil.copy2(source, snapshot / source.name)
+            # Keep each transition, including a return to a previously used build.
+            snapshot.rename(backups / ("before-" + target_version + "-" + Path(staging).name))
+    with tempfile.NamedTemporaryFile(mode="w", dir=directory, delete=False) as pending:
+        pending.write(target_version)
+        pending.flush()
+        os.fsync(pending.fileno())
+    os.replace(pending.name, marker)
+
+
 def game_directory(selection):
     try:
         version = resolve_release(selection)

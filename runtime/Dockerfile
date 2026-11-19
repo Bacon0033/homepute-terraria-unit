@@ -11,4 +11,5 @@ COPY --from=game /vanilla /vanilla
 COPY terraria_bridge.py game_release.py /opt/homepute/
 WORKDIR /vanilla
 EXPOSE 7777/tcp 8080/tcp
+HEALTHCHECK --interval=10s --timeout=4s --start-period=5m --retries=3 CMD ["python3", "-c", "import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:' + os.environ.get('HOMEPUTE_CHANNEL_PORT', '8080') + '/health', timeout=3).close()"]
 ENTRYPOINT ["python3", "-u", "/opt/homepute/terraria_bridge.py"]
