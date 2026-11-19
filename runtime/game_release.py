@@ -38,6 +38,8 @@ def resolve_release(selection):
 
 
 def unpack(archive, version, dest, architecture):
+    if architecture not in ("amd64", "x86_64", "arm64", "aarch64"):
+        raise ValueError("Unsupported Terraria CPU architecture: " + architecture)
     if version == BUNDLED:
         with archive.open("rb") as stream:
             if hashlib.file_digest(stream, "sha256").hexdigest() != BUNDLED_SHA256:
@@ -52,7 +54,7 @@ def unpack(archive, version, dest, architecture):
             relative = Path(info.filename[len(prefix):])
             if relative.is_absolute() or ".." in relative.parts:
                 raise ValueError("Unexpected archive path")
-            if architecture not in ("amd64", "x86_64") and (
+            if (
                 relative.parts[0] in ("lib64", "lib", "lib32")
                 or relative.name.startswith(("mscorlib.", "System.", "Mono.", "TerrariaServer.bin."))
                 or relative.name == "TerrariaServer"
@@ -62,8 +64,6 @@ def unpack(archive, version, dest, architecture):
             path.parent.mkdir(parents=True, exist_ok=True)
             with files.open(info) as src, path.open("wb") as out:
                 shutil.copyfileobj(src, out)
-            if relative.name == "TerrariaServer.bin.x86_64":
-                path.chmod(0o755)
     if not (dest / "TerrariaServer.exe").is_file():
         raise ValueError("Release does not contain a supported Linux dedicated server")
 

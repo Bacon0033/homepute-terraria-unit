@@ -231,8 +231,7 @@ write_config()
 master, slave = pty.openpty()
 MASTER_FD = master
 game_dir, RELEASE = game_directory(os.environ.get("TERRARIA_VERSION", "LATEST"))
-bundled = game_dir / "TerrariaServer.bin.x86_64"
-launcher = [bundled] if bundled.is_file() else ["mono", game_dir / "TerrariaServer.exe"]
+launcher = ["mono", game_dir / "TerrariaServer.exe"]
 os.environ["MONO_IOMAP"] = "all"
 PROCESS = subprocess.Popen(
     [*launcher, "-config", "/config/serverconfig.txt", "-banlist", "/config/banlist.txt"],

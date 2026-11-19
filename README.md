@@ -2,7 +2,7 @@
 
 Power the server from a node, choose the game version and start it. `LATEST` resolves Re-Logic’s current PC dedicated-server release at startup. Enter an exact version such as `1.4.4.9` to match an older client. The world and ban list live in the persistent `/config` volume. Back up a world before opening it with an older game version.
 
-The release image targets Linux ARM64 and x86-64. Apple silicon uses ARM-native Mono with the managed server. Intel Macs and x86-64 Linux or Windows hosts using Linux containers use Re-Logic’s bundled x86-64 runtime. The Homepute engine selects the image for its own OS and CPU. The multi-platform release workflow tests each target on a native runner.
+The release image targets Linux ARM64 and x86-64. Each image runs Re-Logic’s managed server with the native Mono package for its CPU, including Apple silicon, Intel Macs and Windows hosts using Linux containers. The Homepute engine selects the image for its own OS and CPU. The multi-platform release workflow tests each target on a native runner.
 
 ## Join
 
