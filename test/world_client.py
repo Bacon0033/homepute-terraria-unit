@@ -2,6 +2,7 @@
 import socket
 import struct
 import sys
+import time
 
 def check_world(port):
     # Desktop release 326 is the curRelease constant in the pinned 1.4.5.8 server.
@@ -29,6 +30,16 @@ def check_world(port):
             kind, data = receive()
             if kind == 7:
                 assert b"SDK fixture" in data, "Wrong world in the server response"
+                # Finish the read-only session without discarding queued game data.
+                sock.shutdown(socket.SHUT_WR)
+                deadline = time.monotonic() + 3
+                while (remaining := deadline - time.monotonic()) > 0:
+                    sock.settimeout(remaining)
+                    try:
+                        if not wire.read1(8192):
+                            break
+                    except TimeoutError:
+                        break
                 return
         raise AssertionError("World information was not delivered")
 
